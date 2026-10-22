@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Tracker</title>
+  <!-- Tailwind CSS CDN (Pinned v3.4.1) -->
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#3b82f6', 600: '#2563eb' }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons CDN (Pinned v0.344.0) -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col selection:bg-blue-500 selection:text-white">
+
+  <!-- Container Toast -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Header / Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30 shadow-inner">
+          <i data-lucide="briefcase" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base text-slate-50 tracking-wide">Job Application Tracker</h1>
+          <p class="text-xs text-slate-400 font-medium" id="textLastUpdated">Terakhir diperbarui: -</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-xs">
+        <div id="connectionStatus" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="statusText" class="font-medium">Terhubung</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+    <!-- Metrics Dashboard -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+        <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Lamaran</p>
+        <p class="text-3xl font-extrabold text-slate-100 mt-1.5" id="metricTotal">0</p>
+      </div>
+      <div class="bg-slate-900/80 border border-blue-500/20 rounded-2xl p-4 shadow-sm hover:border-blue-500/40 transition-all bg-gradient-to-br from-blue-950/20 to-transparent">
+        <p class="text-xs text-blue-400 font-medium uppercase tracking-wider">In-Progress</p>
+        <p class="text-3xl font-extrabold text-blue-400 mt-1.5" id="metricInProgress">0</p>
+      </div>
+      <div class="bg-slate-900/80 border border-purple-500/20 rounded-2xl p-4 shadow-sm hover:border-purple-500/40 transition-all bg-gradient-to-br from-purple-950/20 to-transparent">
+        <p class="text-xs text-purple-400 font-medium uppercase tracking-wider">Interview</p>
+        <p class="text-3xl font-extrabold text-purple-400 mt-1.5" id="metricInterview">0</p>
+      </div>
+      <div class="bg-slate-900/80 border border-emerald-500/20 rounded-2xl p-4 shadow-sm hover:border-emerald-500/40 transition-all bg-gradient-to-br from-emerald-950/20 to-transparent">
+        <p class="text-xs text-emerald-400 font-medium uppercase tracking-wider">Offered</p>
+        <p class="text-3xl font-extrabold text-emerald-400 mt-1.5" id="metricOffered">0</p>
+      </div>
+      <div class="bg-slate-900/80 border border-rose-500/20 rounded-2xl p-4 shadow-sm hover:border-rose-500/40 transition-all col-span-2 md:col-span-1 bg-gradient-to-br from-rose-950/20 to-transparent">
+        <p class="text-xs text-rose-400 font-medium uppercase tracking-wider">Rejected</p>
+        <p class="text-3xl font-extrabold text-rose-400 mt-1.5" id="metricRejected">0</p>
+      </div>
+    </section>
+
+    <!-- Form Tambah Lamaran -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-sm">
+      <h2 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400"></i> Tambah Lamaran Baru
+      </h2>
+      <form id="formLamaran" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tanggal Melamar *</label>
+          <input type="date" name="tanggalMelamar" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Nama Perusahaan *</label>
+          <input type="text" name="namaPerusahaan" required placeholder="PT Example Indonesia" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Posisi *</label>
+          <input type="text" name="posisi" required placeholder="Software Engineer" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Sumber Lowongan *</label>
+          <input type="text" name="sumberLowongan" required placeholder="LinkedIn, JobStreet..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Status *</label>
+          <select name="status" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Offered">Offered</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Resign">Resign</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tautan Lowongan</label>
+          <input type="url" name="tautanLowongan" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Gaji (Opsional)</label>
+          <input type="number" name="gaji" placeholder="8000000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Catatan</label>
+          <input type="text" name="catatan" placeholder="Keterangan tambahan..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-inner">
+        </div>
+        <div class="md:col-span-3 lg:col-span-4 flex justify-end pt-2">
+          <button type="submit" id="btnSimpan" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 active:scale-95">
+            <i data-lucide="save" class="w-4 h-4"></i> Simpan Lamaran
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Controls & Ekspor -->
+    <section class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+      <div class="flex flex-1 gap-3">
+        <div class="relative flex-1 md:w-72 md:flex-initial">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="inputSearch" placeholder="Cari perusahaan atau posisi..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-sm">
+        </div>
+        <select id="filterStatus" class="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors shadow-sm">
+          <option value="">Semua Status</option>
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offered">Offered</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Resign">Resign</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <button onclick="exportReport('pdf')" class="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm hover:border-slate-700">
+          <i data-lucide="file-text" class="w-4 h-4 text-rose-400"></i> Ekspor PDF
+        </button>
+        <button onclick="exportReport('docx')" class="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm hover:border-slate-700">
+          <i data-lucide="file-type-2" class="w-4 h-4 text-blue-400"></i> Ekspor DOCX
+        </button>
+        <a id="linkUnduh" class="hidden bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-emerald-500/20 transition-all flex items-center gap-2 shadow-sm" target="_blank" rel="noopener">
+          <i data-lucide="download" class="w-4 h-4"></i> Unduh File
+        </a>
+      </div>
+    </section>
+
+    <!-- Tabel Data -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800 font-semibold">
+            <tr>
+              <th class="px-5 py-3.5 w-16 text-center">No</th>
+              <th class="px-5 py-3.5">Tanggal</th>
+              <th class="px-5 py-3.5">Perusahaan</th>
+              <th class="px-5 py-3.5">Posisi</th>
+              <th class="px-5 py-3.5">Sumber</th>
+              <th class="px-5 py-3.5">Status</th>
+              <th class="px-5 py-3.5">Gaji</th>
+              <th class="px-5 py-3.5 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="8" class="px-5 py-12 text-center text-slate-500">Memuat data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Edit dengan Tombol Hapus & Scroll -->
+  <div id="modalEdit" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Header Modal -->
+      <div class="flex justify-between items-center border-b border-slate-800 px-6 py-4 bg-slate-900 shrink-0">
+        <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Edit Lamaran
+        </h3>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <!-- Form Edit (Scrollable) -->
+      <form id="formEdit" class="p-6 space-y-3.5 overflow-y-auto flex-1">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tanggal Melamar *</label>
+          <input type="date" name="tanggalMelamar" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Nama Perusahaan *</label>
+          <input type="text" name="namaPerusahaan" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Posisi *</label>
+          <input type="text" name="posisi" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Sumber Lowongan *</label>
+          <input type="text" name="sumberLowongan" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Status *</label>
+          <select name="status" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Offered">Offered</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Resign">Resign</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tautan Lowongan</label>
+          <input type="url" name="tautanLowongan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Gaji (Opsional)</label>
+          <input type="number" name="gaji" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">Catatan</label>
+          <input type="text" name="catatan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner">
+        </div>
+        <!-- Footer Modal dengan Tombol Hapus & Simpan -->
+        <div class="flex justify-between items-center pt-4 border-t border-slate-800 sticky bottom-0 bg-slate-900 py-3 mt-4">
+          <button type="button" onclick="deleteRecord(document.getElementById('formEdit').dataset.id)" class="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus
+          </button>
+          <div class="flex gap-2.5">
+            <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors">Batal</button>
+            <button type="submit" id="btnSimpanEdit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-600/20 active:scale-95">Simpan Perubahan</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const REFRESH_MS = 10000;
+    let rawData = [];
+    let isLoading = false;
+    let isSaving = false;
+    let modalOpen = false;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      
+      const form = document.getElementById("formLamaran");
+      const btn = document.getElementById("btnSimpan");
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const payload = Object.fromEntries(new FormData(form));
+        isSaving = true;
+        setLoading(btn, true, "Menyimpan...");
+
+        google.script.run
+          .withSuccessHandler(res => {
+            isSaving = false;
+            setLoading(btn, false, "Simpan Lamaran");
+            if (!res.success) return showToast("Gagal: " + res.message, "error");
+            showToast("Lamaran berhasil disimpan.", "success");
+            form.reset();
+            loadData(true);
+          })
+          .withFailureHandler(err => {
+            isSaving = false;
+            setLoading(btn, false, "Simpan Lamaran");
+            showToast("Gagal: " + err.message, "error");
+          })
+          .apiCreate(payload);
+      });
+
+      document.getElementById("formEdit").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const btn = document.getElementById("btnSimpanEdit");
+        const payload = Object.fromEntries(new FormData(form));
+        isSaving = true;
+        setLoading(btn, true, "Menyimpan...");
+
+        google.script.run
+          .withSuccessHandler(res => {
+            isSaving = false;
+            setLoading(btn, false, "Simpan Perubahan");
+            if (!res.success) return showToast("Gagal: " + res.message, "error");
+            showToast("Perubahan tersimpan.", "success");
+            closeEditModal();
+            loadData(true);
+          })
+          .withFailureHandler(err => {
+            isSaving = false;
+            setLoading(btn, false, "Simpan Perubahan");
+            showToast("Gagal: " + err.message, "error");
+          })
+          .apiUpdate(form.dataset.id, payload);
+      });
+
+      document.getElementById("inputSearch").addEventListener("input", filterAndRender);
+      document.getElementById("filterStatus").addEventListener("change", filterAndRender);
+
+      loadData(true);
+      startRealtimeSync();
+    });
+
+    function loadData(showErrorToast = false) {
+      if (isLoading) return;
+      isLoading = true;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          isLoading = false;
+          if (!res.success) {
+            setConnectionStatus(false);
+            if (showErrorToast) showToast("Gagal memuat: " + res.message, "error");
+            return;
+          }
+          setConnectionStatus(true);
+          rawData = res.data;
+          filterAndRender();
+          renderMetrics(res.data);
+          setLastUpdated(new Date());
+        })
+        .withFailureHandler(err => {
+          isLoading = false;
+          setConnectionStatus(false);
+          if (showErrorToast) showToast("Gagal memuat: " + err.message, "error");
+        })
+        .apiGetAll();
+    }
+
+    function startRealtimeSync() {
+      setInterval(() => {
+        if (document.hidden || modalOpen || isSaving) return;
+        loadData(false);
+      }, REFRESH_MS);
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && !modalOpen && !isSaving) loadData(false);
+      });
+    }
+
+    function filterAndRender() {
+      const search = document.getElementById("inputSearch").value.toLowerCase();
+      const status = document.getElementById("filterStatus").value;
+
+      const filtered = rawData.filter(r => {
+        const matchSearch = r.namaPerusahaan.toLowerCase().includes(search) || r.posisi.toLowerCase().includes(search);
+        const matchStatus = status === "" || r.status === status;
+        return matchSearch && matchStatus;
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("tableBody");
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-12 text-center text-slate-500">Tidak ada data lamaran ditemukan.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map((r, idx) => {
+        const salaryFormatted = r.gaji !== "" ? "Rp " + Number(r.gaji).toLocaleString("id-ID") : "-";
+        return `
+          <tr class="hover:bg-slate-800/40 transition-colors group">
+            <td class="px-5 py-3.5 text-center text-slate-500 text-xs font-mono">${idx + 1}</td>
+            <td class="px-5 py-3.5 whitespace-nowrap text-xs font-mono text-slate-300">${r.tanggalMelamar}</td>
+            <td class="px-5 py-3.5 font-semibold text-slate-100">
+              ${r.tautanLowongan ? `<a href="${r.tautanLowongan}" target="_blank" rel="noopener" class="hover:underline text-blue-400 flex items-center gap-1.5 group-hover:text-blue-300">${r.namaPerusahaan} <i data-lucide="external-link" class="w-3.5 h-3.5"></i></a>` : r.namaPerusahaan}
+            </td>
+            <td class="px-5 py-3.5 text-slate-200 font-medium">${r.posisi}</td>
+            <td class="px-5 py-3.5 text-slate-400 text-xs">${r.sumberLowongan}</td>
+            <td class="px-5 py-3.5">${getStatusBadge(r.status)}</td>
+            <td class="px-5 py-3.5 text-slate-300 text-xs font-mono">${salaryFormatted}</td>
+            <td class="px-5 py-3.5 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick='openEditModal(${JSON.stringify(r).replace(/'/g, "&apos;")})' class="p-2 bg-slate-800/80 hover:bg-blue-600 hover:text-white text-slate-300 rounded-xl transition-all shadow-sm active:scale-95" title="Edit">
+                  <i data-lucide="edit-2" class="w-4 h-4"></i>
+                </button>
+                <button onclick='deleteRecord("${r.idUnik}")' class="p-2 bg-slate-800/80 hover:bg-rose-600 hover:text-white text-slate-300 rounded-xl transition-all shadow-sm active:scale-95" title="Hapus">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function deleteRecord(idUnik) {
+      if (!confirm("Apakah Anda yakin ingin menghapus data lamaran ini?")) return;
+      isSaving = true;
+      showToast("Menghapus data...", "info");
+
+      google.script.run
+        .withSuccessHandler(res => {
+          isSaving = false;
+          if (!res.success) return showToast("Gagal menghapus: " + res.message, "error");
+          showToast("Data lamaran berhasil dihapus.", "success");
+          closeEditModal();
+          loadData(true);
+        })
+        .withFailureHandler(err => {
+          isSaving = false;
+          showToast("Gagal menghapus: " + err.message, "error");
+        })
+        .apiDelete(idUnik);
+    }
+
+    function getStatusBadge(status) {
+      const colors = {
+        Applied: "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-sm shadow-blue-500/5",
+        Interview: "bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-sm shadow-purple-500/5",
+        Offered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-sm shadow-emerald-500/5",
+        Rejected: "bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-sm shadow-rose-500/5",
+        Resign: "bg-slate-500/10 text-slate-400 border-slate-500/30 shadow-sm"
+      };
+      const color = colors[status] || "bg-slate-500/10 text-slate-400 border-slate-500/30";
+      return `<span class="px-2.5 py-1 rounded-full text-xs font-semibold border ${color} inline-block">${status}</span>`;
+    }
+
+    function renderMetrics(data) {
+      document.getElementById("metricTotal").textContent = data.length;
+      document.getElementById("metricInProgress").textContent = data.filter(r => r.status === "Applied" || r.status === "Interview").length;
+      document.getElementById("metricInterview").textContent = data.filter(r => r.status === "Interview").length;
+      document.getElementById("metricOffered").textContent = data.filter(r => r.status === "Offered").length;
+      document.getElementById("metricRejected").textContent = data.filter(r => r.status === "Rejected").length;
+    }
+
+    function openEditModal(record) {
+      modalOpen = true;
+      const form = document.getElementById("formEdit");
+      form.dataset.id = record.idUnik;
+      form.tanggalMelamar.value = record.tanggalMelamar;
+      form.namaPerusahaan.value = record.namaPerusahaan;
+      form.posisi.value = record.posisi;
+      form.tautanLowongan.value = record.tautanLowongan;
+      form.sumberLowongan.value = record.sumberLowongan;
+      form.status.value = record.status;
+      form.gaji.value = record.gaji;
+      form.catatan.value = record.catatan;
+      document.getElementById("modalEdit").classList.remove("hidden");
+    }
+
+    function closeEditModal() {
+      modalOpen = false;
+      document.getElementById("modalEdit").classList.add("hidden");
+    }
+
+    function exportReport(format) {
+      showToast("Menyiapkan laporan...", "info");
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res.success) return showToast("Gagal: " + res.message, "error");
+          showExportLink(res.url, res.name);
+          showToast("Laporan berhasil dibuat.", "success");
+        })
+        .withFailureHandler(err => showToast("Gagal membuat laporan: " + err.message, "error"))
+        .apiExportReport(format);
+    }
+
+    function showExportLink(url, name) {
+      const a = document.getElementById("linkUnduh");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "Buka " + name;
+      a.classList.remove("hidden");
+    }
+
+    function setLoading(btn, isLoading, text) {
+      btn.disabled = isLoading;
+      btn.textContent = text;
+    }
+
+    function setConnectionStatus(isConnected) {
+      const el = document.getElementById("connectionStatus");
+      const txt = document.getElementById("statusText");
+      if (isConnected) {
+        el.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm";
+        txt.textContent = "Terhubung";
+      } else {
+        el.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm";
+        txt.textContent = "Terputus";
+      }
+    }
+
+    function setLastUpdated(date) {
+      const timeStr = date.toTimeString().split(" ")[0];
+      document.getElementById("textLastUpdated").textContent = "Terakhir diperbarui: " + timeStr;
+    }
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      
+      const colors = {
+        success: "bg-slate-900 border-emerald-500/50 text-emerald-300",
+        error: "bg-slate-900 border-rose-500/50 text-rose-300",
+        info: "bg-slate-900 border-blue-500/50 text-blue-300"
+      };
+
+      toast.className = `pointer-events-auto border rounded-xl p-3.5 shadow-xl text-xs font-medium flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
